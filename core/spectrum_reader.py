@@ -2,7 +2,7 @@ from glob import glob
 from os.path import join as make_path
 from re import compile
 import numpy as np
-from numpy import pi, array, zeros, float64, mean, where
+from numpy import pi, array, zeros, float64, mean, where, deg2rad, inf
 from math import isclose
 from collections import OrderedDict
 from matplotlib import pyplot as plt
@@ -19,7 +19,6 @@ class SpectrumReader:
         self.__regex_expr = r'\d\.\d+|\d+\t[-+]?\d+\.\d+|\d+\n'
         self.__micron_per_step = kwargs.get('micron_per_step', 10)
         self.__deg_per_micron = kwargs.get('deg_per_micron', 5 / 3500)
-        self.__rad_per_deg = pi / 180
 
         self.__process()
 
@@ -88,7 +87,7 @@ class SpectrumReader:
 
     def __steps2angles(self, steps):
         steps -= np.min(steps)
-        steps *= self.__rad_per_deg * self.__deg_per_micron * self.__micron_per_step
+        steps *= deg2rad(self.__deg_per_micron * self.__micron_per_step)
 
         return steps
 
@@ -97,18 +96,61 @@ class SpectrumReader:
         assert (steps.shape[0] == spectrum.shape[0]), 'Different steps and spectra dimensions'
         assert (lambdas.shape[0] == spectrum.shape[1]), 'Different lambdas and spectra dimensions'
 
+    @staticmethod
     @jit(nopython=True)
-    def linear_approximation_real(x, x1, y1, x2, y2):
+    def __linear_approximation_real(x, x1, y1, x2, y2):
         """Linear approximation for float arguments"""
 
         return (y1 - y2) / (x1 - x2) * x + (y2 * x1 - x2 * y1) / (x1 - x2)
 
     def __make_uniform_along_angle(self, angles, spectrum):
-        pass
+        n_angles, n_lambdas = spectrum.shape
+        dangle_uniform = angles[-1] / n_angles
+        angles_uniform = [i * dangle_uniform for i in range(n_angles)]
 
-    def __plot_fas(self, spectrum):
+        spectrum_uniform = spectrum[:]
+
+        start = 0
+        for i in range(n_angles):
+            for pos in range(start, n_angles, 1):
+                if angles_uniform[i] >= angles[pos]:
+                    start = max(0, pos - 1)
+            for s in range(n_lambdas):
+                spectrum_uniform[i, s] = self.__linear_approximation_real(angles_uniform[i],
+                                                                          angles[start], spectrum[start, s],
+                                                                          angles[start+1], spectrum[start+1, s])
+
+        return angles_uniform, spectrum_uniform
+
+    def __plot_fas(self, angles, lambdas, spectrum):
         plt.figure(figsize=(15, 10))
         plt.contourf(spectrum, cmap='gray', levels=100)
+
+        print(len(angles))
+        print(len(lambdas))
+        print(spectrum.shape)
+
+        # n_x = 8
+        # dx = (lambdas[-1] - lambdas[0]) / n_x
+        # x_ticks = [int(i * dx + lambdas[0]) for i in range(n_x)]
+        # #x_ticks2 = [i * dx for i in range(n_x)]
+        # dl = lambdas[1] - lambdas[0]
+        # x_ticks_labels = [int((e - lambdas[0]) / dl) for e in x_ticks]
+        #
+        # print(x_ticks)
+        # print(x_ticks_labels)
+        #
+        # plt.xticks(x_ticks_labels, x_ticks, fontsize=20)
+        #
+        # n_y = 7
+        # dy = (angles[-1] - angles[0]) / n_y
+        # y_ticks = [i * dy for i in range(n_y)]
+        # plt.yticks(y_ticks, y_ticks, fontsize=20)
+
+        plt.xlabel('$\mathbf{\lambda}$, nm', fontsize=30, fontweight='bold')
+        plt.ylabel('$\mathbf{\\theta}$, rad', fontsize=30, fontweight='bold')
+
+        plt.grid(linewidth=2, linestyle='dotted', color='gray', alpha=0.5)
 
         plt.savefig('fas_%s' % self.__dirname, bbox_inches='tight')
         plt.close()
@@ -125,6 +167,8 @@ class SpectrumReader:
         # lambdas
         lambdas = self.__get_lambdas(files[0])
 
+        print(lambdas)
+
         # steps and angles
         steps = array(list(data.keys()), dtype=float64)
         angles = self.__steps2angles(steps)
@@ -132,14 +176,15 @@ class SpectrumReader:
         # spectrum
         spectrum = array(list(data.values()), dtype=float64)
 
-        # make angles and spectrum uniform
-
-
+        # check
         self.__check(steps, lambdas, spectrum)
 
-        print(steps)
+        # make angles and spectrum uniform
+        # angles, spectrum = self.__make_uniform_along_angle(angles, spectrum)
 
-        self.__plot_fas(spectrum)
+        print(angles)
+
+        self.__plot_fas(angles, lambdas, spectrum)
 
 
 
