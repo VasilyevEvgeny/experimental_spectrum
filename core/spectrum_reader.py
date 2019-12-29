@@ -98,50 +98,65 @@ class SpectrumReader:
 
     @staticmethod
     @jit(nopython=True)
-    def __linear_approximation_real(x, x1, y1, x2, y2):
-        """Linear approximation for float arguments"""
-
-        return (y1 - y2) / (x1 - x2) * x + (y2 * x1 - x2 * y1) / (x1 - x2)
-
-    def __make_uniform_along_angle(self, angles, spectrum):
+    def __make_uniform_along_angle(angles, spectrum):
         n_angles, n_lambdas = spectrum.shape
-        dangle_uniform = angles[-1] / n_angles
-        angles_uniform = [i * dangle_uniform for i in range(n_angles)]
+        dangle_uniform = (angles[-1] - angles[0]) / n_angles
+        angles_uniform = [angles[0] + k * dangle_uniform for k in range(n_angles)]
 
-        spectrum_uniform = spectrum[:]
+        spectrum_uniform = zeros(shape=spectrum.shape)
 
-        start = 0
-        for i in range(n_angles):
-            for pos in range(start, n_angles, 1):
-                if angles_uniform[i] >= angles[pos]:
-                    start = max(0, pos - 1)
+        prev, nxt = 0, 1
+        for k in range(n_angles):
+            for pos in range(n_angles):
+                if angles[pos] >= angles_uniform[k]:
+                    prev = max(0, pos - 1)
+                    nxt = min(prev + 1, n_angles - 1)
+                    break
             for s in range(n_lambdas):
-                spectrum_uniform[i, s] = self.__linear_approximation_real(angles_uniform[i],
-                                                                          angles[start], spectrum[start, s],
-                                                                          angles[start+1], spectrum[start+1, s])
+                x = angles_uniform[k]
+                x1, x2 = angles[prev], angles[nxt]
+                y1, y2 = spectrum[prev, s], spectrum[nxt, s]
+                spectrum_uniform[k, s] = (y1 - y2) / (x1 - x2) * x + (y2 * x1 - x2 * y1) / (x1 - x2)
 
         return angles_uniform, spectrum_uniform
+
+    @staticmethod
+    @jit(nopython=True)
+    def __make_uniform_along_lambda(lambdas, spectrum):
+        n_angles, n_lambdas = spectrum.shape
+
+        dlambdas_uniform = (lambdas[-1] - lambdas[0]) / n_lambdas
+        lambdas_uniform = [lambdas[0] + s * dlambdas_uniform for s in range(n_lambdas)]
+
+        spectrum_uniform = zeros(shape=spectrum.shape)
+
+        prev, nxt = 0, 1
+        for s in range(n_lambdas):
+            for pos in range(n_lambdas):
+                if lambdas[pos] >= lambdas_uniform[s]:
+                    prev = max(0, pos - 1)
+                    nxt = min(prev + 1, n_lambdas)
+                    break
+            if prev == nxt:
+                break
+            for k in range(n_angles):
+                x = lambdas_uniform[s]
+                x1, x2 = lambdas[prev], lambdas[nxt]
+                y1, y2 = spectrum[k, prev], spectrum[k, nxt]
+                spectrum_uniform[k, s] = (y1 - y2) / (x1 - x2) * x + (y2 * x1 - x2 * y1) / (x1 - x2)
+
+        return lambdas_uniform, spectrum_uniform
 
     def __plot_fas(self, angles, lambdas, spectrum):
         plt.figure(figsize=(15, 10))
         plt.contourf(spectrum, cmap='gray', levels=100)
 
-        print(len(angles))
-        print(len(lambdas))
-        print(spectrum.shape)
+        x_ticks_labels = ['1.2', '1.4', '1.6', '1.8', '2.0', '2.2', '2.4']
 
-        # n_x = 8
-        # dx = (lambdas[-1] - lambdas[0]) / n_x
-        # x_ticks = [int(i * dx + lambdas[0]) for i in range(n_x)]
-        # #x_ticks2 = [i * dx for i in range(n_x)]
-        # dl = lambdas[1] - lambdas[0]
-        # x_ticks_labels = [int((e - lambdas[0]) / dl) for e in x_ticks]
-        #
-        # print(x_ticks)
-        # print(x_ticks_labels)
-        #
-        # plt.xticks(x_ticks_labels, x_ticks, fontsize=20)
-        #
+        dl = (lambdas[-1] - lambdas[0]) / len(lambdas)
+        x_ticks = [int((float(e) * 10**3 - lambdas[0]) / dl) for e in x_ticks_labels]
+        plt.xticks(x_ticks, x_ticks_labels, fontsize=20)
+
         # n_y = 7
         # dy = (angles[-1] - angles[0]) / n_y
         # y_ticks = [i * dy for i in range(n_y)]
@@ -167,8 +182,6 @@ class SpectrumReader:
         # lambdas
         lambdas = self.__get_lambdas(files[0])
 
-        print(lambdas)
-
         # steps and angles
         steps = array(list(data.keys()), dtype=float64)
         angles = self.__steps2angles(steps)
@@ -179,10 +192,9 @@ class SpectrumReader:
         # check
         self.__check(steps, lambdas, spectrum)
 
-        # make angles and spectrum uniform
-        # angles, spectrum = self.__make_uniform_along_angle(angles, spectrum)
-
-        print(angles)
+        # make spectrum uniform along both axes
+        angles, spectrum = self.__make_uniform_along_angle(angles, spectrum)
+        lambdas, spectrum = self.__make_uniform_along_lambda(lambdas, spectrum)
 
         self.__plot_fas(angles, lambdas, spectrum)
 
