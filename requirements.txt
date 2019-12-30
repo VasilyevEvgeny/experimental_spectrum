@@ -1,0 +1,5 @@
+glob3
+numpy
+scipy
+matplotlib
+numba

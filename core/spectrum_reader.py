@@ -2,12 +2,12 @@ from glob import glob
 from os.path import join as make_path
 from re import compile
 import numpy as np
-from numpy import pi, array, zeros, float64, mean, where, deg2rad, inf
+from numpy import array, zeros, float64, mean, where, deg2rad, log10
+from scipy.ndimage import gaussian_filter
 from math import isclose
 from collections import OrderedDict
-from matplotlib import pyplot as plt
-from pylab import contourf
 from numba import jit
+from matplotlib import pyplot as plt
 
 
 class SpectrumReader:
@@ -17,8 +17,14 @@ class SpectrumReader:
         self.__dirname = self.__dir.split('\\')[-1]
 
         self.__regex_expr = r'\d\.\d+|\d+\t[-+]?\d+\.\d+|\d+\n'
-        self.__micron_per_step = kwargs.get('micron_per_step', 10)
-        self.__deg_per_micron = kwargs.get('deg_per_micron', 5 / 3500)
+        self.__micron_per_step = kwargs.get('micron_per_step', 10)  # [micron / step]
+        self.__deg_per_micron = kwargs.get('deg_per_micron', 5 / 3500)  # [deg / micron]
+
+        self.__gaussian_smoothing = kwargs.get('gaussian_smoothing', True)
+        self.__sigma_angle = kwargs.get('sigma_angle', 0.0)  # [rad]
+        self.__sigma_lambda = kwargs.get('sigma_lambda', 10.0)  # [nm]
+
+        self.__steps_overlap = kwargs.get('steps_overlap', 4)  # []
 
         self.__process()
 
@@ -147,25 +153,62 @@ class SpectrumReader:
 
         return lambdas_uniform, spectrum_uniform
 
+    def __smooth_spectrum(self, dangle, dlambda, spectrum):
+        n_sigma_angle = self.__sigma_angle / dangle
+        n_sigma_lambda = self.__sigma_lambda / dlambda
+
+        return gaussian_filter(spectrum, sigma=(n_sigma_angle, n_sigma_lambda))
+
+    def __cut_steps_overlap(self, angles, spectrum):
+        angles = angles[self.__steps_overlap:]
+        angles -= np.min(angles)
+        return angles, spectrum[self.__steps_overlap:, :]
+
+    @staticmethod
+    def __logarithm(spectrum, p=2):
+        MAX = np.max(spectrum)
+        lowest_levels = MAX * 10**-p
+        spectrum[where(spectrum < lowest_levels)] = lowest_levels
+
+        return log10(spectrum / MAX)
+
+    @staticmethod
+    def __reflect(angles, spectrum):
+        angles = array([-e for e in list(angles)][::-1][:-1] + list(angles), dtype=float64)
+        spectrum = array((list(spectrum)[::-1])[:-1] + list(spectrum), dtype=float64)
+
+        return angles, spectrum
+
     def __plot_fas(self, angles, lambdas, spectrum):
-        plt.figure(figsize=(15, 10))
-        plt.contourf(spectrum, cmap='gray', levels=100)
+        fig, ax = plt.subplots(figsize=(15, 7))
+        plot = plt.contourf(spectrum, cmap='gray', levels=100)
 
-        x_ticks_labels = ['1.2', '1.4', '1.6', '1.8', '2.0', '2.2', '2.4']
-
-        dl = (lambdas[-1] - lambdas[0]) / len(lambdas)
-        x_ticks = [int((float(e) * 10**3 - lambdas[0]) / dl) for e in x_ticks_labels]
+        x_ticks_labels = ['1.4', '1.6', '1.8', '2.0', '2.2', '2.4']
+        dlambda = lambdas[1] - lambdas[0]
+        x_ticks = [int((float(e) * 10**3 - lambdas[0]) / dlambda) for e in x_ticks_labels]
         plt.xticks(x_ticks, x_ticks_labels, fontsize=20)
 
-        # n_y = 7
-        # dy = (angles[-1] - angles[0]) / n_y
-        # y_ticks = [i * dy for i in range(n_y)]
-        # plt.yticks(y_ticks, y_ticks, fontsize=20)
+        y_ticks_labels = ['-0.01', ' 0.00', '+0.01']
+        dangle = angles[1] - angles[0]
+        y_ticks = [int((float(e) + angles[-1]) / dangle) for e in y_ticks_labels]
+        plt.yticks(y_ticks, y_ticks_labels, fontsize=20)
 
-        plt.xlabel('$\mathbf{\lambda}$, nm', fontsize=30, fontweight='bold')
+        plt.xlabel('$\mathbf{\lambda}$, $\mathbf{\mu}$m', fontsize=30, fontweight='bold')
         plt.ylabel('$\mathbf{\\theta}$, rad', fontsize=30, fontweight='bold')
 
         plt.grid(linewidth=2, linestyle='dotted', color='gray', alpha=0.5)
+
+        # colorbar
+        min_val = np.min(spectrum)
+        n_ticks_colorbar_levels = 4
+        dcb = min_val / n_ticks_colorbar_levels
+        levels_ticks_colorbar = [i * dcb for i in range(n_ticks_colorbar_levels + 1)]
+
+        colorbar = fig.colorbar(plot, ticks=levels_ticks_colorbar, orientation='vertical', aspect=10, pad=0.05)
+        colorbar.set_label('lg(S/S$\mathbf{_{max}}$)', labelpad=-100, y=1.2, rotation=0, fontsize=30, fontweight='bold')
+        ticks_cbar = ['%05.2f' % e if e != 0 else '00.00' for e in levels_ticks_colorbar]
+        colorbar.ax.set_yticklabels(ticks_cbar)
+        colorbar.ax.tick_params(labelsize=30)
 
         plt.savefig('fas_%s' % self.__dirname, bbox_inches='tight')
         plt.close()
@@ -196,6 +239,22 @@ class SpectrumReader:
         angles, spectrum = self.__make_uniform_along_angle(angles, spectrum)
         lambdas, spectrum = self.__make_uniform_along_lambda(lambdas, spectrum)
 
+        # cut steps overlap
+        angles, spectrum = self.__cut_steps_overlap(angles, spectrum)
+
+        # gaussian smooth
+        if self.__gaussian_smoothing:
+            dangle = angles[1] - angles[0]
+            dlambda = lambdas[1] - lambdas[0]
+            spectrum = self.__smooth_spectrum(dangle, dlambda, spectrum)
+
+        # reflect
+        angles, spectrum = self.__reflect(angles, spectrum)
+
+        # logarithm spectrum
+        spectrum = self.__logarithm(spectrum)
+
+        # plot fas
         self.__plot_fas(angles, lambdas, spectrum)
 
 
