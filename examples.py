@@ -1,4 +1,4 @@
-from core import SpectrumReader
+from experimental_spectrum_processor import ExperimentalSpectrumProcessor
 
-spectrum_reader_gauss = SpectrumReader('gauss')
-spectrum_reader_vortex = SpectrumReader('vortex')
+gauss = ExperimentalSpectrumProcessor('gauss')
+vortex = ExperimentalSpectrumProcessor('vortex')
