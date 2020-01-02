@@ -30,6 +30,7 @@ class ExperimentalSpectrumProcessor:
 
         self.__steps_overlap = kwargs.get('steps_overlap', 4)  # []
         self.__log_power = kwargs.get('log_power', -2)
+        self.__lambda_dn = kwargs.get('lambda_dn', 50) # []
 
         self.__process()
 
@@ -222,12 +223,12 @@ class ExperimentalSpectrumProcessor:
         plt.close()
 
         #
-        # spectra
+        # frequency spectra
         #
 
-        spectra_path = make_path(self.__res_dir, 'spectra')
-        mkdir(spectra_path)
-        for i in tqdm(range(fas.shape[0] // 2 + 1), desc=self.__dirname):
+        frequency_spectra_path = make_path(self.__res_dir, 'frequency_spectra')
+        mkdir(frequency_spectra_path)
+        for i in tqdm(range(fas.shape[0] // 2 + 1), desc='%s->frequency_spectra' % self.__dirname):
             spectrum = fas[i, :]
             plt.figure(figsize=(20, 10))
 
@@ -243,7 +244,32 @@ class ExperimentalSpectrumProcessor:
 
             plt.grid(linewidth=2, linestyle='dotted', color='gray', alpha=0.5)
 
-            plt.savefig(make_path(spectra_path, 'angle=%.5frad.png' % abs(angles[i])))
+            plt.savefig(make_path(frequency_spectra_path, 'angle=%.5frad.png' % abs(angles[i])))
+            plt.close()
+
+        #
+        # angular spectra
+        #
+
+        angular_spectra_path = make_path(self.__res_dir, 'angular_spectra')
+        mkdir(angular_spectra_path)
+        for i in tqdm(range(0, fas.shape[1], self.__lambda_dn), desc='%s->angular_spectra' % self.__dirname):
+            spectrum = fas[:, i]
+            plt.figure(figsize=(20, 10))
+
+            plt.plot(angles, spectrum, color='black', linewidth=5, linestyle='solid')
+
+            plt.ylim([self.__log_power - 0.1, 0.1])
+
+            plt.xticks(fontsize=20, fontweight='bold')
+            plt.yticks(fontsize=20, fontweight='bold')
+
+            plt.xlabel('$\mathbf{\\theta}$, rad', fontsize=30, fontweight='bold')
+            plt.ylabel('lg(S/S$\mathbf{_{max}}$)', fontsize=30, fontweight='bold')
+
+            plt.grid(linewidth=2, linestyle='dotted', color='gray', alpha=0.5)
+
+            plt.savefig(make_path(angular_spectra_path, 'lambda=%.1fnm.png' % (lambdas[0] + i * (lambdas[1] - lambdas[0]))))
             plt.close()
 
     def __process(self):
