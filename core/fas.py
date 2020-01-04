@@ -1,85 +1,34 @@
-from glob import glob
-from os import mkdir
-from os.path import join as make_path, exists
-import datetime
-from re import compile
-import numpy as np
-from numpy import array, zeros, float64, mean, where, deg2rad, log10
-from scipy.ndimage import gaussian_filter
-from math import isclose
 from collections import OrderedDict
 from numba import jit
 from tqdm import tqdm
+from scipy.ndimage import gaussian_filter
+import numpy as np
+from os.path import join as make_path
+from os import mkdir
+from numpy import array, zeros, float64, mean, where, deg2rad, log10
 from matplotlib import pyplot as plt
 
+from .base import BaseProcessor
 
-class ExperimentalSpectrumProcessor:
+
+class ProcessorFAS(BaseProcessor):
     def __init__(self, experimental_data_dir, **kwargs):
+        super().__init__(experimental_data_dir, **kwargs)
 
-        self.__dir = experimental_data_dir
-        self.__dirname = self.__dir.split('\\')[-1]
-        self.__res_dir = 'results_%s_%s' % (self.__dirname, datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S"))
-        mkdir(self.__res_dir)
-
-        self.__regex_expr = r'\d\.\d+|\d+\t[-+]?\d+\.\d+|\d+\n'
         self.__micron_per_step = kwargs.get('micron_per_step', 10)  # [micron / step]
         self.__deg_per_micron = kwargs.get('deg_per_micron', 5 / 3500)  # [deg / micron]
 
-        self.__sigma_angle = kwargs.get('sigma_angle', 0.0)  # [rad]
-        self.__sigma_lambda = kwargs.get('sigma_lambda', 10.0)  # [nm]
-
+        self.__sigma_angle = kwargs.get('sigma_angle', 0)  # [rad]
         self.__steps_overlap = kwargs.get('steps_overlap', 4)  # []
-        self.__log_power = kwargs.get('log_power', -2)
-        self.__lambda_dn = kwargs.get('lambda_dn', 50) # []
+        self.__lambda_dn = kwargs.get('lambda_dn', 50)  # []
 
-        self.__process()
-
-    def __get_files(self):
-        files = []
-        for file in glob(make_path(self.__dir, '*.dat')):
-            files.append(file.replace('\\', '/'))
-
-        return files
-
-    def __get_proper_lines(self, file):
-        with open(file, 'r') as f:
-            lines = f.readlines()
-        regex = compile(self.__regex_expr)
-        lines = list(filter(regex.search, lines))
-
-        n = len(lines)
-        if n < 10:
-            raise Exception('Small number of lambdas!')
-
-        return lines, n
-
-    def __get_lambdas(self, file):
-        lines, n = self.__get_proper_lines(file)
-        lambdas = zeros(shape=(n,), dtype=float64)
-        for i, line in enumerate(lines):
-            lmbda = float(line.split('\t')[0])
-            lambdas[i] = lmbda
-
-        for i in range(1, len(lambdas)-1, 1):
-            if not isclose(lambdas[i] - lambdas[i-1], lambdas[i + 1] - lambdas[i], rel_tol=0.05):
-                raise Exception('Step along lambdas is not constant!')
-
-        return lambdas
-
-    def __get_spectrum(self, file):
-        lines, n = self.__get_proper_lines(file)
-        spectrum = zeros(shape=(n,), dtype=float64)
-
-        for i, line in enumerate(lines):
-            spectrum[i] = float(line[:-1].split('\t')[-1])
-
-        return spectrum
+        self._process()
 
     def __get_data(self, files):
         data = {}
         for file in files:
             step = int(''.join(filter(str.isdigit, (file.split('\\')[-1]).split('.')[0])))
-            spectrum = self.__get_spectrum(file)
+            spectrum = self._get_spectrum(file)
             if step in data.keys():
                 data[step].append(spectrum)
             else:
@@ -161,7 +110,7 @@ class ExperimentalSpectrumProcessor:
 
     def __smooth_spectrum(self, dangle, dlambda, spectrum):
         n_sigma_angle = self.__sigma_angle / dangle
-        n_sigma_lambda = self.__sigma_lambda / dlambda
+        n_sigma_lambda = self._sigma_lambda / dlambda
 
         return gaussian_filter(spectrum, sigma=(n_sigma_angle, n_sigma_lambda))
 
@@ -170,13 +119,6 @@ class ExperimentalSpectrumProcessor:
         angles -= np.min(angles)
         return angles, spectrum[self.__steps_overlap:, :]
 
-    def __logarithm(self, spectrum):
-        MAX = np.max(spectrum)
-        lowest_levels = MAX * 10**self.__log_power
-        spectrum[where(spectrum < lowest_levels)] = lowest_levels
-
-        return log10(spectrum / MAX)
-
     @staticmethod
     def __reflect(angles, spectrum):
         angles = array([-e for e in list(angles)][::-1][:-1] + list(angles), dtype=float64)
@@ -184,7 +126,7 @@ class ExperimentalSpectrumProcessor:
 
         return angles, spectrum
 
-    def __plot(self, angles, lambdas, fas):
+    def _plot(self, angles, lambdas, fas):
         #
         # fas
         #
@@ -219,22 +161,22 @@ class ExperimentalSpectrumProcessor:
         colorbar.ax.set_yticklabels(ticks_cbar)
         colorbar.ax.tick_params(labelsize=30)
 
-        plt.savefig(make_path(self.__res_dir, 'fas'), bbox_inches='tight')
+        plt.savefig(make_path(self._res_dir, 'fas'), bbox_inches='tight')
         plt.close()
 
         #
         # frequency spectra
         #
 
-        frequency_spectra_path = make_path(self.__res_dir, 'frequency_spectra')
+        frequency_spectra_path = make_path(self._res_dir, 'frequency_spectra')
         mkdir(frequency_spectra_path)
-        for i in tqdm(range(fas.shape[0] // 2 + 1), desc='%s->frequency_spectra' % self.__dirname):
+        for i in tqdm(range(fas.shape[0] // 2 + 1), desc='%s->frequency_spectra' % self._res_dir):
             spectrum = fas[i, :]
-            plt.figure(figsize=(20, 10))
 
+            plt.figure(figsize=(20, 10))
             plt.plot(lambdas, spectrum, color='black', linewidth=5, linestyle='solid')
 
-            plt.ylim([self.__log_power-0.1, 0.1])
+            plt.ylim([self._log_power-0.1, 0.1])
 
             plt.xticks(fontsize=20, fontweight='bold')
             plt.yticks(fontsize=20, fontweight='bold')
@@ -251,15 +193,15 @@ class ExperimentalSpectrumProcessor:
         # angular spectra
         #
 
-        angular_spectra_path = make_path(self.__res_dir, 'angular_spectra')
+        angular_spectra_path = make_path(self._res_dir, 'angular_spectra')
         mkdir(angular_spectra_path)
-        for i in tqdm(range(0, fas.shape[1], self.__lambda_dn), desc='%s->angular_spectra' % self.__dirname):
+        for i in tqdm(range(0, fas.shape[1], self.__lambda_dn), desc='%s->angular_spectra' % self._res_dir):
             spectrum = fas[:, i]
-            plt.figure(figsize=(20, 10))
 
+            plt.figure(figsize=(20, 10))
             plt.plot(angles, spectrum, color='black', linewidth=5, linestyle='solid')
 
-            plt.ylim([self.__log_power - 0.1, 0.1])
+            plt.ylim([self._log_power - 0.1, 0.1])
 
             plt.xticks(fontsize=20, fontweight='bold')
             plt.yticks(fontsize=20, fontweight='bold')
@@ -272,8 +214,8 @@ class ExperimentalSpectrumProcessor:
             plt.savefig(make_path(angular_spectra_path, 'lambda=%.1fnm.png' % (lambdas[0] + i * (lambdas[1] - lambdas[0]))))
             plt.close()
 
-    def __process(self):
-        files = self.__get_files()
+    def _process(self):
+        files = self._get_files()
         if not files:
             raise Exception('No files detected!')
 
@@ -281,7 +223,7 @@ class ExperimentalSpectrumProcessor:
         data = self.__transform_data(self.__get_data(files))
 
         # lambdas
-        lambdas = self.__get_lambdas(files[0])
+        lambdas = self._get_lambdas(files[0])
 
         # steps and angles
         steps = array(list(data.keys()), dtype=float64)
@@ -309,7 +251,7 @@ class ExperimentalSpectrumProcessor:
         angles, fas = self.__reflect(angles, fas)
 
         # logarithm spectrum
-        fas = self.__logarithm(fas)
+        fas = self._logarithm(fas)
 
         # plot
-        self.__plot(angles, lambdas, fas)
+        self._plot(angles, lambdas, fas)
