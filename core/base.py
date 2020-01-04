@@ -1,6 +1,7 @@
+from argparse import ArgumentParser
 from glob import glob
 from os import mkdir
-from os.path import join as make_path
+from os.path import join as make_path, exists
 import datetime
 from re import compile
 import numpy as np
@@ -12,10 +13,22 @@ from abc import ABCMeta, abstractmethod
 class BaseProcessor(metaclass=ABCMeta):
     def __init__(self, experimental_data_dir, **kwargs):
 
-        self._dir = experimental_data_dir
-        self._dirname = self._dir.split('\\')[-1]
-        self._res_dir = 'results_%s_%s' % (self._dirname, datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S"))
-        mkdir(self._res_dir)
+        self._data_dir = experimental_data_dir
+        self._data_dir_name = self._data_dir.split('/')[-1]
+
+        parser = ArgumentParser(description='Get global_res_dir and res_dir')
+        parser.add_argument('--global_res_dir', type=str, help='Global results directory')
+        parser.add_argument('--res_dir_name', type=str, help='Results directory')
+        args = parser.parse_args()
+        self._res_dir = '%s/%s' % (args.global_res_dir, args.res_dir_name)
+
+        self._current_res_dir = '%s/%s' % (self._res_dir,
+                                           'results_%s_%s' % (self._data_dir_name,
+                                                              datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")))
+
+        if not exists(self._res_dir):
+            mkdir(self._res_dir)
+        mkdir(self._current_res_dir)
 
         self._regex_expr = r'\d\.\d+|\d+\t[-+]?\d+\.\d+|\d+\n'
         self._sigma_lambda = kwargs.get('sigma_lambda', 10.0)  # [nm]
@@ -34,7 +47,7 @@ class BaseProcessor(metaclass=ABCMeta):
 
     def _get_files(self):
         files = []
-        for file in glob(make_path(self._dir, '*.dat')):
+        for file in glob(make_path(self._data_dir, '*.dat')):
             files.append(file.replace('\\', '/'))
 
         return files

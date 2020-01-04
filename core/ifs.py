@@ -6,7 +6,7 @@ from matplotlib import pyplot as plt
 from .base import BaseProcessor
 
 
-class ProcessorFS(BaseProcessor):
+class ProcessorIFS(BaseProcessor):
     def __init__(self, experimental_data_dir, **kwargs):
         super().__init__(experimental_data_dir, **kwargs)
 
@@ -17,7 +17,7 @@ class ProcessorFS(BaseProcessor):
 
         return gaussian_filter(spectrum, sigma=(n_sigma_lambda,))
 
-    def _plot(self, filename, lambdas, spectrum):
+    def __plot(self, filename, lambdas, spectrum):
         #
         # frequency spectra
         #
@@ -35,7 +35,7 @@ class ProcessorFS(BaseProcessor):
 
         plt.grid(linewidth=2, linestyle='dotted', color='gray', alpha=0.5)
 
-        plt.savefig(make_path(self._res_dir, filename))
+        plt.savefig(make_path(self._current_res_dir, filename))
         plt.close()
 
     def _process(self):
@@ -46,7 +46,7 @@ class ProcessorFS(BaseProcessor):
         # lambdas
         lambdas = self._get_lambdas(files[0])
 
-        for file in tqdm(files, desc='%s->frequency_spectrum' % self._res_dir):
+        for file in tqdm(files, desc='%s->integrated_frequency_spectrum' % self._current_res_dir):
             filename = (file.split('/')[-1]).split('.')[0]
 
             # spectrum
@@ -60,4 +60,4 @@ class ProcessorFS(BaseProcessor):
             spectrum = self._logarithm(spectrum)
 
             # plot
-            self._plot(filename, lambdas, spectrum)
+            self.__plot(filename, lambdas, spectrum)

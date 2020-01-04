@@ -126,7 +126,7 @@ class ProcessorFAS(BaseProcessor):
 
         return angles, spectrum
 
-    def _plot(self, angles, lambdas, fas):
+    def __plot(self, angles, lambdas, fas):
         #
         # fas
         #
@@ -161,16 +161,16 @@ class ProcessorFAS(BaseProcessor):
         colorbar.ax.set_yticklabels(ticks_cbar)
         colorbar.ax.tick_params(labelsize=30)
 
-        plt.savefig(make_path(self._res_dir, 'fas'), bbox_inches='tight')
+        plt.savefig(make_path(self._current_res_dir, 'fas'), bbox_inches='tight')
         plt.close()
 
         #
         # frequency spectra
         #
 
-        frequency_spectra_path = make_path(self._res_dir, 'frequency_spectra')
+        frequency_spectra_path = make_path(self._current_res_dir, 'frequency_spectra')
         mkdir(frequency_spectra_path)
-        for i in tqdm(range(fas.shape[0] // 2 + 1), desc='%s->frequency_spectra' % self._res_dir):
+        for i in tqdm(range(fas.shape[0] // 2 + 1), desc='%s->frequency_spectra' % self._current_res_dir):
             spectrum = fas[i, :]
 
             plt.figure(figsize=(20, 10))
@@ -193,9 +193,9 @@ class ProcessorFAS(BaseProcessor):
         # angular spectra
         #
 
-        angular_spectra_path = make_path(self._res_dir, 'angular_spectra')
+        angular_spectra_path = make_path(self._current_res_dir, 'angular_spectra')
         mkdir(angular_spectra_path)
-        for i in tqdm(range(0, fas.shape[1], self.__lambda_dn), desc='%s->angular_spectra' % self._res_dir):
+        for i in tqdm(range(0, fas.shape[1], self.__lambda_dn), desc='%s->angular_spectra' % self._current_res_dir):
             spectrum = fas[:, i]
 
             plt.figure(figsize=(20, 10))
@@ -254,4 +254,4 @@ class ProcessorFAS(BaseProcessor):
         fas = self._logarithm(fas)
 
         # plot
-        self._plot(angles, lambdas, fas)
+        self.__plot(angles, lambdas, fas)

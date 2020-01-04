@@ -1,2 +1,2 @@
 from .fas import ProcessorFAS
-from .fs import ProcessorFS
+from .ifs import ProcessorIFS
