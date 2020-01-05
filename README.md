@@ -3,12 +3,25 @@
 Program allows to process the results of experiments on the measurement of frequency-angular spectra and integrated frequency spectra
 of laser pulses after propagation in a nonlinear medium.
 
-
-# Principal design of experiments
+# Typical plots
 
 **Frequency-angular spectrum (FAS)** - measurement of the pulse beam spectrum at different angles of its propagation
 
+| `FAS for Gaussian beam` | `FAS for vortex beam` |
+| :----------------------: | :---------------------: |
+| ![gauss](https://github.com/VasilyevEvgeny/experimental_spectrum/blob/master/resources/spectra/fas_gauss.png) | ![vortex](https://github.com/VasilyevEvgeny/experimental_spectrum/blob/master/resources/spectra/fas_vortex.png) |
+
+| `Frequency spectrum at constant angle` | `Angular spectrum at constant wavelength` |
+| :----------------------: | :---------------------: |
+| ![frequency_spectrum](https://github.com/VasilyevEvgeny/experimental_spectrum/blob/master/resources/spectra/frequency_spectrum.png) | ![angular_spectrum](https://github.com/VasilyevEvgeny/experimental_spectrum/blob/master/resources/spectra/angular_spectrum.png) |
+
 **Integrated frequency spectrum (IFS)** - focusing all spatial garmonics and its spectrum measurement 
+
+| `IFS in log scale` | `IFS in linear scale` |
+| :----------------------: | :---------------------: |
+| ![log_scale](https://github.com/VasilyevEvgeny/experimental_spectrum/blob/master/resources/spectra/ifs_log.png) | ![linear_scale](https://github.com/VasilyevEvgeny/experimental_spectrum/blob/master/resources/spectra/ifs_linear.png) |
+
+# Principal design of experiments
 
 | `FAS`  | `IFS`  |
 | :------------------------------: | :------------------------------: |
