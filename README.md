@@ -56,7 +56,7 @@ ifs = ProcessorIFS(<path_to_experimental_data>)
 There are 2 command line arguments:
 * **global_res_dir** - path to the directory where a set of program results will be stored
 * **res_dir_name** - name of the directory where a set of program results will be stored
-At the next start of the program it is checked whether the directory **global_res_dir/res_dir_name** exist, and if not, 
+At the next start of the program it is checked whether the directory **global_res_dir/res_dir_name** exists, and if not, 
 a new empty one is created.
 
 Classes **``ProcessorFAS``** and **``ProcessorIFS``** are derivative for class **``BaseProcessor``**, which has the next 
