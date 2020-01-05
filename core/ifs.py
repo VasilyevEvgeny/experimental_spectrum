@@ -1,12 +1,15 @@
 from tqdm import tqdm
 from os.path import join as make_path
 from scipy.ndimage import gaussian_filter
+import numpy as np
 from matplotlib import pyplot as plt
 
 from .base import BaseProcessor
 
 
 class ProcessorIFS(BaseProcessor):
+    """Integrated frequency spectrum"""
+
     def __init__(self, experimental_data_dir, **kwargs):
         super().__init__(experimental_data_dir, **kwargs)
 
@@ -18,20 +21,21 @@ class ProcessorIFS(BaseProcessor):
         return gaussian_filter(spectrum, sigma=(n_sigma_lambda,))
 
     def __plot(self, filename, lambdas, spectrum):
-        #
-        # frequency spectra
-        #
+
+        ylabel = 'lg(S/S$\mathbf{_{max}}$)' if self._log_scale else 'S/S$\mathbf{_{max}}$'
+        min_val, max_val = np.min(spectrum), np.max(spectrum)
+        delta = 0.1 * (max_val - min_val)
 
         plt.figure(figsize=(20, 10))
         plt.plot(lambdas, spectrum, color='black', linewidth=5, linestyle='solid')
 
-        plt.ylim([self._log_power - 0.1, 0.1])
+        plt.ylim([min_val - delta, max_val + delta])
 
         plt.xticks(fontsize=20, fontweight='bold')
         plt.yticks(fontsize=20, fontweight='bold')
 
         plt.xlabel('$\mathbf{\lambda}$, nm', fontsize=30, fontweight='bold')
-        plt.ylabel('lg(S/S$\mathbf{_{max}}$)', fontsize=30, fontweight='bold')
+        plt.ylabel(ylabel, fontsize=30, fontweight='bold')
 
         plt.grid(linewidth=2, linestyle='dotted', color='gray', alpha=0.5)
 
@@ -57,7 +61,7 @@ class ProcessorIFS(BaseProcessor):
             spectrum = self.__smooth_spectrum(dlambda, spectrum)
 
             # logarithm
-            spectrum = self._logarithm(spectrum)
+            spectrum = self._logarithm(spectrum) if self._log_scale else self._normalize(spectrum)
 
             # plot
             self.__plot(filename, lambdas, spectrum)

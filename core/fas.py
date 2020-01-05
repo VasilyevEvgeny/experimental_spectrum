@@ -12,6 +12,8 @@ from .base import BaseProcessor
 
 
 class ProcessorFAS(BaseProcessor):
+    """Frequency-angular spectrum"""
+
     def __init__(self, experimental_data_dir, **kwargs):
         super().__init__(experimental_data_dir, **kwargs)
 
@@ -127,6 +129,11 @@ class ProcessorFAS(BaseProcessor):
         return angles, spectrum
 
     def __plot(self, angles, lambdas, fas):
+
+        ylabel = 'lg(S/S$\mathbf{_{max}}$)' if self._log_scale else 'S/S$\mathbf{_{max}}$'
+        min_val, max_val = np.min(fas), np.max(fas)
+        delta = 0.1 * (max_val - min_val)
+
         #
         # fas
         #
@@ -149,14 +156,12 @@ class ProcessorFAS(BaseProcessor):
 
         plt.grid(linewidth=2, linestyle='dotted', color='gray', alpha=0.5)
 
-        # colorbar
-        min_val = np.min(fas)
         n_ticks_colorbar_levels = 4
-        dcb = min_val / n_ticks_colorbar_levels
-        levels_ticks_colorbar = [i * dcb for i in range(n_ticks_colorbar_levels + 1)]
+        dcb = (max_val - min_val) / n_ticks_colorbar_levels
+        levels_ticks_colorbar = [min_val + i * dcb for i in range(n_ticks_colorbar_levels + 1)]
 
         colorbar = fig.colorbar(plot, ticks=levels_ticks_colorbar, orientation='vertical', aspect=10, pad=0.05)
-        colorbar.set_label('lg(S/S$\mathbf{_{max}}$)', labelpad=-100, y=1.2, rotation=0, fontsize=30, fontweight='bold')
+        colorbar.set_label(ylabel, labelpad=-100, y=1.2, rotation=0, fontsize=30, fontweight='bold')
         ticks_cbar = ['%05.2f' % e if e != 0 else '00.00' for e in levels_ticks_colorbar]
         colorbar.ax.set_yticklabels(ticks_cbar)
         colorbar.ax.tick_params(labelsize=30)
@@ -176,13 +181,13 @@ class ProcessorFAS(BaseProcessor):
             plt.figure(figsize=(20, 10))
             plt.plot(lambdas, spectrum, color='black', linewidth=5, linestyle='solid')
 
-            plt.ylim([self._log_power-0.1, 0.1])
+            plt.ylim([min_val - delta, max_val + delta])
 
             plt.xticks(fontsize=20, fontweight='bold')
             plt.yticks(fontsize=20, fontweight='bold')
 
             plt.xlabel('$\mathbf{\lambda}$, nm', fontsize=30, fontweight='bold')
-            plt.ylabel('lg(S/S$\mathbf{_{max}}$)', fontsize=30, fontweight='bold')
+            plt.ylabel(ylabel, fontsize=30, fontweight='bold')
 
             plt.grid(linewidth=2, linestyle='dotted', color='gray', alpha=0.5)
 
@@ -201,13 +206,13 @@ class ProcessorFAS(BaseProcessor):
             plt.figure(figsize=(20, 10))
             plt.plot(angles, spectrum, color='black', linewidth=5, linestyle='solid')
 
-            plt.ylim([self._log_power - 0.1, 0.1])
+            plt.ylim([min_val - delta, max_val + delta])
 
             plt.xticks(fontsize=20, fontweight='bold')
             plt.yticks(fontsize=20, fontweight='bold')
 
             plt.xlabel('$\mathbf{\\theta}$, rad', fontsize=30, fontweight='bold')
-            plt.ylabel('lg(S/S$\mathbf{_{max}}$)', fontsize=30, fontweight='bold')
+            plt.ylabel(ylabel, fontsize=30, fontweight='bold')
 
             plt.grid(linewidth=2, linestyle='dotted', color='gray', alpha=0.5)
 
@@ -251,7 +256,7 @@ class ProcessorFAS(BaseProcessor):
         angles, fas = self.__reflect(angles, fas)
 
         # logarithm spectrum
-        fas = self._logarithm(fas)
+        fas = self._logarithm(fas) if self._log_scale else self._normalize(fas)
 
         # plot
         self.__plot(angles, lambdas, fas)

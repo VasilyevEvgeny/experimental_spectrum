@@ -32,6 +32,7 @@ class BaseProcessor(metaclass=ABCMeta):
 
         self._regex_expr = r'\d\.\d+|\d+\t[-+]?\d+\.\d+|\d+\n'
         self._sigma_lambda = kwargs.get('sigma_lambda', 10.0)  # [nm]
+        self._log_scale = kwargs.get('log_scale', True)  # log or linear scale
         self._log_power = kwargs.get('log_power', -2)
 
     @abstractmethod
@@ -44,6 +45,10 @@ class BaseProcessor(metaclass=ABCMeta):
         spectrum[where(spectrum < lowest_levels)] = lowest_levels
 
         return log10(spectrum / maximum)
+
+    @staticmethod
+    def _normalize(spectrum):
+        return spectrum / np.max(spectrum)
 
     def _get_files(self):
         files = []
