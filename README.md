@@ -68,9 +68,9 @@ additional parameters:
 Additional parameters for class **``ProcessorFAS``**:
 * **micron_per_step** *(default = 10)* - number of microns in one step 
 * **deg_per_micron** *(default = 5 / 3500)* - number of degrees in one micron 
-* **sigma_angle** (default = 0 rad) - dispersion of gaussian filter along angle coordinate
-* **steps_overlap** (default = 4) - number of overlapping steps in fas measurements
-* **lambda_dn** - number of points along lambda coordinate through which the angular spectrum is plotted
+* **sigma_angle** *(default = 0 rad)* - dispersion of gaussian filter along angle coordinate
+* **steps_overlap** *(default = 4)* - number of overlapping steps in fas measurements
+* **lambda_dn** *(default = 50)* - number of points along lambda coordinate through which the angular spectrum is plotted
 
 There are no any additional parameters for class **``ProcessorIFS``**.
 
