@@ -3,6 +3,7 @@ from numba import jit
 from tqdm import tqdm
 from scipy.ndimage import gaussian_filter
 import numpy as np
+from numpy import append
 from os.path import join as make_path
 from os import mkdir
 from numpy import array, zeros, float64, mean, where, deg2rad, log10
@@ -23,6 +24,8 @@ class ProcessorFAS(BaseProcessor):
         self.__sigma_angle = kwargs.get('sigma_angle', 0)  # [rad]
         self.__steps_overlap = kwargs.get('steps_overlap', 4)  # []
         self.__lambda_dn = kwargs.get('lambda_dn', 50)  # []
+
+        self.__max_angle = kwargs.get('max_angle', None)  # [rad]
 
         self._process()
 
@@ -128,6 +131,18 @@ class ProcessorFAS(BaseProcessor):
 
         return angles, spectrum
 
+    def __add_zero_gap(self, spectrum, angles):
+        cur_max_angle = angles[-1]
+        dangle = angles[1] - angles[0]
+
+        if self.__max_angle is not None:
+            n_points_to_add = int((self.__max_angle - cur_max_angle) / dangle + 1)
+            zero_arr = zeros(shape=(n_points_to_add, spectrum.shape[1]))
+            spectrum = append(spectrum, zero_arr, axis=0)
+            angles = append(angles, [angles[-1] + i * dangle for i in range(n_points_to_add)], axis=0)
+
+        return spectrum, angles
+
     def __plot(self, angles, lambdas, fas):
 
         ylabel = 'lg(S/S$\mathbf{_{max}}$)' if self._log_scale else 'S/S$\mathbf{_{max}}$'
@@ -144,29 +159,30 @@ class ProcessorFAS(BaseProcessor):
         x_ticks_labels = ['1.4', '1.6', '1.8', '2.0', '2.2', '2.4']
         dlambda = lambdas[1] - lambdas[0]
         x_ticks = [int((float(e) * 10**3 - lambdas[0]) / dlambda) for e in x_ticks_labels]
-        plt.xticks(x_ticks, x_ticks_labels, fontsize=20)
+        plt.xticks(x_ticks, x_ticks_labels, fontsize=30)
 
-        y_ticks_labels = ['-0.01', ' 0.00', '+0.01']
+        y_ticks_labels = ['-0.02', ' 0.00', '+0.02']
         dangle = angles[1] - angles[0]
-        y_ticks = [int((float(e) + angles[-1]) / dangle) for e in y_ticks_labels]
-        plt.yticks(y_ticks, y_ticks_labels, fontsize=20)
+        max_angle = self.__max_angle if self.__max_angle else angles[-1]
+        y_ticks = [int((float(e) + max_angle) / dangle) for e in y_ticks_labels]
+        plt.yticks(y_ticks, y_ticks_labels, fontsize=30)
 
-        plt.xlabel('$\mathbf{\lambda}$, $\mathbf{\mu}$m', fontsize=30, fontweight='bold')
-        plt.ylabel('$\mathbf{\\theta}$, rad', fontsize=30, fontweight='bold')
+        plt.xlabel('$\mathbf{\lambda}$, $\mathbf{\mu}$m', fontsize=40, fontweight='bold')
+        plt.ylabel('$\mathbf{\\theta}$, rad', fontsize=40, fontweight='bold')
 
-        plt.grid(linewidth=2, linestyle='dotted', color='gray', alpha=0.5)
+        plt.grid(linewidth=3, linestyle='dotted', color='white', alpha=0.5)
 
         n_ticks_colorbar_levels = 4
         dcb = (max_val - min_val) / n_ticks_colorbar_levels
         levels_ticks_colorbar = [min_val + i * dcb for i in range(n_ticks_colorbar_levels + 1)]
 
         colorbar = fig.colorbar(plot, ticks=levels_ticks_colorbar, orientation='vertical', aspect=10, pad=0.05)
-        colorbar.set_label(ylabel, labelpad=-100, y=1.2, rotation=0, fontsize=30, fontweight='bold')
+        colorbar.set_label(ylabel, labelpad=-100, y=1.2, rotation=0, fontsize=40, fontweight='bold')
         ticks_cbar = ['%05.2f' % e if e != 0 else '00.00' for e in levels_ticks_colorbar]
         colorbar.ax.set_yticklabels(ticks_cbar)
         colorbar.ax.tick_params(labelsize=30)
 
-        plt.savefig(make_path(self._current_res_dir, 'fas'), bbox_inches='tight')
+        plt.savefig(make_path(self._current_res_dir, 'fas'), bbox_inches='tight', dpi=300)
         plt.close()
 
         #
@@ -251,6 +267,9 @@ class ProcessorFAS(BaseProcessor):
         dangle = angles[1] - angles[0]
         dlambda = lambdas[1] - lambdas[0]
         fas = self.__smooth_spectrum(dangle, dlambda, fas)
+
+        # add zero gap
+        fas, angles = self.__add_zero_gap(fas, angles)
 
         # reflect
         angles, fas = self.__reflect(angles, fas)

@@ -26,20 +26,22 @@ class ProcessorIFS(BaseProcessor):
         min_val, max_val = np.min(spectrum), np.max(spectrum)
         delta = 0.1 * (max_val - min_val)
 
-        plt.figure(figsize=(20, 10))
-        plt.plot(lambdas, spectrum, color='black', linewidth=5, linestyle='solid')
+        fig = plt.figure(figsize=(20, 10))
+        plt.plot(lambdas, spectrum, color='black', linewidth=7, linestyle='solid')
 
         plt.ylim([min_val - delta, max_val + delta])
 
-        plt.xticks(fontsize=20, fontweight='bold')
-        plt.yticks(fontsize=20, fontweight='bold')
+        plt.xticks(fontsize=40)
+        plt.yticks(fontsize=40)
 
-        plt.xlabel('$\mathbf{\lambda}$, nm', fontsize=30, fontweight='bold')
-        plt.ylabel(ylabel, fontsize=30, fontweight='bold')
+        plt.xlabel('$\mathbf{\lambda}$, nm', fontsize=55, fontweight='bold')
+        plt.ylabel(ylabel, fontsize=55, fontweight='bold')
 
-        plt.grid(linewidth=2, linestyle='dotted', color='gray', alpha=0.5)
+        plt.grid(linewidth=4, linestyle='dotted', color='gray', alpha=0.5)
 
-        plt.savefig(make_path(self._current_res_dir, filename))
+        bbox = fig.bbox_inches.from_bounds(0, -0.4, 19, 10)
+
+        plt.savefig(make_path(self._current_res_dir, filename), bbox_inches=bbox)
         plt.close()
 
     def _process(self):
