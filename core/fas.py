@@ -20,19 +20,21 @@ class ProcessorFAS(BaseProcessor):
 
         self.__micron_per_step = kwargs.get('micron_per_step', 10)  # [micron / step]
         self.__deg_per_micron = kwargs.get('deg_per_micron', 5 / 3500)  # [deg / micron]
+        self.__direction = kwargs.get('direction', 'forward')  # direction of spectrum measurements 'forward' / 'backward'
 
         self.__sigma_angle = kwargs.get('sigma_angle', 0)  # [rad]
         self.__steps_overlap = kwargs.get('steps_overlap', 4)  # []
         self.__lambda_dn = kwargs.get('lambda_dn', 50)  # []
 
         self.__max_angle = kwargs.get('max_angle', None)  # [rad]
+        self.__fix_plot_param = kwargs.get('fix_plot_param', 0)  # 0/1/2 or smth like this
 
         self._process()
 
     def __get_data(self, files):
         data = {}
         for file in files:
-            step = int(''.join(filter(str.isdigit, (file.split('\\')[-1]).split('.')[0])))
+            step = int(''.join(filter(str.isdigit, (file.split('/')[-1]).split('.')[0])))
             spectrum = self._get_spectrum(file)
             if step in data.keys():
                 data[step].append(spectrum)
@@ -122,7 +124,17 @@ class ProcessorFAS(BaseProcessor):
     def __cut_steps_overlap(self, angles, spectrum):
         angles = angles[self.__steps_overlap:]
         angles -= np.min(angles)
-        return angles, spectrum[self.__steps_overlap:, :]
+        spectrum = spectrum[self.__steps_overlap:, :]
+
+        return angles, spectrum
+
+    def __get_fas(self, data):
+        if self.__direction == 'forward':
+            return array(list(data.values()), dtype=float64)
+        elif self.__direction == 'backward':
+            return array(list(data.values())[::-1], dtype=float64)
+        else:
+            raise Exception('Wrong direction!')
 
     @staticmethod
     def __reflect(angles, spectrum):
@@ -135,13 +147,13 @@ class ProcessorFAS(BaseProcessor):
         cur_max_angle = angles[-1]
         dangle = angles[1] - angles[0]
 
-        if self.__max_angle is not None:
-            n_points_to_add = max(0, int((self.__max_angle - cur_max_angle) / dangle + 1))
+        if self.__max_angle is not None and self.__max_angle > cur_max_angle:
+            n_points_to_add = int((self.__max_angle - cur_max_angle) / dangle + 1)
             zero_arr = zeros(shape=(n_points_to_add, spectrum.shape[1]))
             spectrum = append(spectrum, zero_arr, axis=0)
             angles = append(angles, [angles[-1] + i * dangle for i in range(n_points_to_add)], axis=0)
 
-        return spectrum, angles
+        return angles, spectrum,
 
     def __plot(self, angles, lambdas, fas):
 
@@ -163,8 +175,8 @@ class ProcessorFAS(BaseProcessor):
 
         y_ticks_labels = ['-0.01', ' 0.00', '+0.01']
         dangle = angles[1] - angles[0]
-        max_angle = self.__max_angle if self.__max_angle else angles[-1]
-        y_ticks = [int((float(e) + max_angle) / dangle) for e in y_ticks_labels]
+        max_angle = angles[-1]
+        y_ticks = [int((float(e) + max_angle) / dangle) + self.__fix_plot_param for e in y_ticks_labels]
         plt.yticks(y_ticks, y_ticks_labels, fontsize=30)
 
         plt.xlabel('$\mathbf{\lambda}$, $\mathbf{\mu}$m', fontsize=40, fontweight='bold')
@@ -251,7 +263,7 @@ class ProcessorFAS(BaseProcessor):
         angles = self.__steps2angles(steps)
 
         # spectrum
-        fas = array(list(data.values()), dtype=float64)
+        fas = self.__get_fas(data)
 
         # check
         self.__check(steps, lambdas, fas)
@@ -269,7 +281,7 @@ class ProcessorFAS(BaseProcessor):
         fas = self.__smooth_spectrum(dangle, dlambda, fas)
 
         # add zero gap
-        fas, angles = self.__add_zero_gap(fas, angles)
+        angles, fas = self.__add_zero_gap(fas, angles)
 
         # reflect
         angles, fas = self.__reflect(angles, fas)
