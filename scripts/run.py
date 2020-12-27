@@ -5,10 +5,10 @@ from core import ProcessorFAS, ProcessorIFS
 #
 
 gauss_fas = ProcessorFAS('scripts/experiment_2019/gauss_fas')
-# gauss_fs = ProcessorIFS('scripts/experiment_2019/gauss_ifs')
+gauss_fs = ProcessorIFS('scripts/experiment_2019/gauss_ifs')
 
 vortex_fas = ProcessorFAS('scripts/experiment_2019/vortex_fas')
-# vortex_fs = ProcessorIFS('scripts/experiment_2019/vortex_ifs')
+vortex_fs = ProcessorIFS('scripts/experiment_2019/vortex_ifs')
 
 
 
@@ -33,3 +33,5 @@ fas_low_energy = ProcessorFAS('scripts/experiment_2020/fas/low_energy',
                                steps_overlap=0,
                                max_angle=0.02,
                                fix_plot_param=1)
+
+ifs = ProcessorIFS('scripts/experiment_2020/ifs')

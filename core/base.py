@@ -73,7 +73,7 @@ class BaseProcessor(metaclass=ABCMeta):
         lines, n = self._get_proper_lines(file)
         lambdas = zeros(shape=(n,), dtype=float64)
         for i, line in enumerate(lines):
-            lambdas[i] = float(line.split('\t')[0])
+            lambdas[i] = float((line.split('\t')[0]).replace(',', '.'))
 
         for i in range(1, len(lambdas)-1, 1):
             if not isclose(lambdas[i] - lambdas[i-1], lambdas[i + 1] - lambdas[i], rel_tol=0.05):
@@ -86,6 +86,6 @@ class BaseProcessor(metaclass=ABCMeta):
         spectrum = zeros(shape=(n,), dtype=float64)
 
         for i, line in enumerate(lines):
-            spectrum[i] = float(line[:-1].split('\t')[-1])
+            spectrum[i] = float((line[:-1].split('\t')[-1]).replace(',', '.'))
 
         return spectrum
