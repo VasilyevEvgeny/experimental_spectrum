@@ -136,7 +136,7 @@ class ProcessorFAS(BaseProcessor):
         dangle = angles[1] - angles[0]
 
         if self.__max_angle is not None:
-            n_points_to_add = int((self.__max_angle - cur_max_angle) / dangle + 1)
+            n_points_to_add = max(0, int((self.__max_angle - cur_max_angle) / dangle + 1))
             zero_arr = zeros(shape=(n_points_to_add, spectrum.shape[1]))
             spectrum = append(spectrum, zero_arr, axis=0)
             angles = append(angles, [angles[-1] + i * dangle for i in range(n_points_to_add)], axis=0)
@@ -161,7 +161,7 @@ class ProcessorFAS(BaseProcessor):
         x_ticks = [int((float(e) * 10**3 - lambdas[0]) / dlambda) for e in x_ticks_labels]
         plt.xticks(x_ticks, x_ticks_labels, fontsize=30)
 
-        y_ticks_labels = ['-0.02', ' 0.00', '+0.02']
+        y_ticks_labels = ['-0.01', ' 0.00', '+0.01']
         dangle = angles[1] - angles[0]
         max_angle = self.__max_angle if self.__max_angle else angles[-1]
         y_ticks = [int((float(e) + max_angle) / dangle) for e in y_ticks_labels]

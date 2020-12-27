@@ -25,6 +25,7 @@ class ProcessorIFS(BaseProcessor):
         ylabel = 'lg(S/S$\mathbf{_{max}}$)' if self._log_scale else 'S/S$\mathbf{_{max}}$'
         min_val, max_val = np.min(spectrum), np.max(spectrum)
         delta = 0.1 * (max_val - min_val)
+        lambdas = [e / 10**3 for e in lambdas]
 
         fig = plt.figure(figsize=(20, 10))
         plt.plot(lambdas, spectrum, color='black', linewidth=7, linestyle='solid')
@@ -34,7 +35,7 @@ class ProcessorIFS(BaseProcessor):
         plt.xticks(fontsize=40)
         plt.yticks(fontsize=40)
 
-        plt.xlabel('$\mathbf{\lambda}$, nm', fontsize=55, fontweight='bold')
+        plt.xlabel('$\mathbf{\lambda}$, $\mathbf{\mu}$m', fontsize=55, fontweight='bold')
         plt.ylabel(ylabel, fontsize=55, fontweight='bold')
 
         plt.grid(linewidth=4, linestyle='dotted', color='gray', alpha=0.5)
