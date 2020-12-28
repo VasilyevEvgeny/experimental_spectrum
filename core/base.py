@@ -35,6 +35,9 @@ class BaseProcessor(metaclass=ABCMeta):
         self._log_scale = kwargs.get('log_scale', True)  # log or linear scale
         self._log_power = kwargs.get('log_power', -2)
 
+        self._lambdas_list = []
+        self._ifs_list = []
+
     @abstractmethod
     def _process(self):
         """"""
@@ -89,3 +92,9 @@ class BaseProcessor(metaclass=ABCMeta):
             spectrum[i] = float((line[:-1].split('\t')[-1]).replace(',', '.'))
 
         return spectrum
+
+    def get_lambdas_list(self):
+        return self._lambdas_list
+
+    def get_ifs_list(self):
+        return self._ifs_list

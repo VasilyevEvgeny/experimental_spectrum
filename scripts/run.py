@@ -1,14 +1,14 @@
-from core import ProcessorFAS, ProcessorIFS
+from core import ProcessorFAS, ProcessorIFS, plot_ifs_comparison
 
+# #
+# # experiment 2019
+# #
 #
-# experiment 2019
+# gauss_fas = ProcessorFAS('scripts/experiment_2019/gauss_fas')
+# gauss_fs = ProcessorIFS('scripts/experiment_2019/gauss_ifs')
 #
-
-gauss_fas = ProcessorFAS('scripts/experiment_2019/gauss_fas')
-gauss_fs = ProcessorIFS('scripts/experiment_2019/gauss_ifs')
-
-vortex_fas = ProcessorFAS('scripts/experiment_2019/vortex_fas')
-vortex_fs = ProcessorIFS('scripts/experiment_2019/vortex_ifs')
+# vortex_fas = ProcessorFAS('scripts/experiment_2019/vortex_fas')
+# vortex_fs = ProcessorIFS('scripts/experiment_2019/vortex_ifs')
 
 
 
@@ -34,4 +34,21 @@ fas_low_energy = ProcessorFAS('scripts/experiment_2020/fas/low_energy',
                                max_angle=0.02,
                                fix_plot_param=1)
 
-ifs = ProcessorIFS('scripts/experiment_2020/ifs')
+# ifs = ProcessorIFS('scripts/experiment_2020/ifs')
+
+
+# #
+# # ifs comparison
+# #
+#
+# plot_ifs_comparison([fas_high_energy, fas_mid_energy, fas_low_energy],
+#                     ['red', 'green', 'blue'],
+#                     ['E=8 мкДж', 'E=6 мкДж', 'E=4 мкДж'],
+#                     'scripts/experiment_2020')
+#
+#
+#
+# plot_ifs_comparison([ifs],
+#                     ['red', 'green', 'blue', 'magenta'],
+#                     ['E=8 мкДж', 'E=6 мкДж', 'E=4.4 мкДж', 'E=4 мкДж'],
+#                     'scripts/experiment_2020')

@@ -63,6 +63,10 @@ class ProcessorIFS(BaseProcessor):
             dlambda = lambdas[1] - lambdas[0]
             spectrum = self.__smooth_spectrum(dlambda, spectrum)
 
+            # add to lists
+            self._lambdas_list.append(lambdas)
+            self._ifs_list.append(spectrum)
+
             # logarithm
             spectrum = self._logarithm(spectrum) if self._log_scale else self._normalize(spectrum)
 

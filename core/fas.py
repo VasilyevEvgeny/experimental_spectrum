@@ -59,8 +59,7 @@ class ProcessorFAS(BaseProcessor):
 
         return steps
 
-    @staticmethod
-    def __check(steps, lambdas, spectrum):
+    def __check(self, steps, lambdas, spectrum):
         assert (steps.shape[0] == spectrum.shape[0]), 'Different steps and spectra dimensions'
         assert (lambdas.shape[0] == spectrum.shape[1]), 'Different lambdas and spectra dimensions'
 
@@ -155,7 +154,40 @@ class ProcessorFAS(BaseProcessor):
 
         return angles, spectrum,
 
-    def __plot(self, angles, lambdas, fas):
+    def __make_ifs(self, fas):
+        ifs = zeros(shape=(fas.shape[1],), dtype=float64)
+        for i in range(fas.shape[0]):
+            for j in range(fas.shape[1]):
+                ifs[j] += fas[i][j]
+
+        return ifs
+
+    def __plot_ifs(self, lambdas, ifs):
+        ylabel = 'lg(S/S$\mathbf{_{max}}$)' if self._log_scale else 'S/S$\mathbf{_{max}}$'
+        min_val, max_val = -2, 0
+        delta = 0.1 * (max_val - min_val)
+        lambdas = [e / 10 ** 3 for e in lambdas]
+        ifs = self._logarithm(ifs) if self._log_scale else self._normalize(ifs)
+
+        fig = plt.figure(figsize=(20, 10))
+        plt.plot(lambdas, ifs, color='black', linewidth=7, linestyle='solid')
+
+        plt.ylim([min_val - delta, max_val + delta])
+
+        plt.xticks(fontsize=40)
+        plt.yticks(fontsize=40)
+
+        plt.xlabel('$\mathbf{\lambda}$, $\mathbf{\mu}$m', fontsize=55, fontweight='bold')
+        plt.ylabel(ylabel, fontsize=55, fontweight='bold')
+
+        plt.grid(linewidth=4, linestyle='dotted', color='gray', alpha=0.5)
+
+        bbox = fig.bbox_inches.from_bounds(0, -0.4, 19, 10)
+
+        plt.savefig(make_path(self._current_res_dir, 'ifs.png'), bbox_inches=bbox)
+        plt.close()
+
+    def __plot_fas(self, angles, lambdas, fas):
 
         ylabel = 'lg(S/S$\mathbf{_{max}}$)' if self._log_scale else 'S/S$\mathbf{_{max}}$'
         min_val, max_val = np.min(fas), np.max(fas)
@@ -271,6 +303,7 @@ class ProcessorFAS(BaseProcessor):
         # make spectrum uniform along both axes
         angles, fas = self.__make_uniform_along_angle(angles, fas)
         lambdas, fas = self.__make_uniform_along_lambda(lambdas, fas)
+        self._lambdas_list.append(lambdas)
 
         # cut steps overlap
         angles, fas = self.__cut_steps_overlap(angles, fas)
@@ -283,6 +316,11 @@ class ProcessorFAS(BaseProcessor):
         # add zero gap
         angles, fas = self.__add_zero_gap(fas, angles)
 
+        # make ifs
+        ifs = self.__make_ifs(fas)
+        self._ifs_list.append(ifs)
+        self.__plot_ifs(lambdas, ifs)
+
         # reflect
         angles, fas = self.__reflect(angles, fas)
 
@@ -290,4 +328,4 @@ class ProcessorFAS(BaseProcessor):
         fas = self._logarithm(fas) if self._log_scale else self._normalize(fas)
 
         # plot
-        self.__plot(angles, lambdas, fas)
+        self.__plot_fas(angles, lambdas, fas)
