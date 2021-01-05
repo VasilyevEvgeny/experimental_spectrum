@@ -37,15 +37,15 @@ fas_low_energy = ProcessorFAS('scripts/experiment_2020/fas/low_energy',
 # ifs = ProcessorIFS('scripts/experiment_2020/ifs')
 
 
-# #
-# # ifs comparison
-# #
 #
-# plot_ifs_comparison([fas_high_energy, fas_mid_energy, fas_low_energy],
-#                     ['red', 'green', 'blue'],
-#                     ['E=8 мкДж', 'E=6 мкДж', 'E=4 мкДж'],
-#                     'scripts/experiment_2020')
+# ifs comparison
 #
+
+plot_ifs_comparison([fas_high_energy, fas_mid_energy, fas_low_energy],
+                    ['red', 'green', 'blue'],
+                    ['E=8 мкДж', 'E=6 мкДж', 'E=3.75 мкДж'],
+                    'scripts/experiment_2020')
+
 #
 #
 # plot_ifs_comparison([ifs],
