@@ -1,38 +1,40 @@
 from core import ProcessorFAS, ProcessorIFS, plot_ifs_comparison
 
-# #
-# # experiment 2019
-# #
 #
-# gauss_fas = ProcessorFAS('scripts/experiment_2019/gauss_fas')
+# experiment 2019
+#
+
+# gauss_fas = ProcessorFAS('scripts/experiment_2019/gauss_fas',
+#                          max_angle=0.0125)
 # gauss_fs = ProcessorIFS('scripts/experiment_2019/gauss_ifs')
-#
-# vortex_fas = ProcessorFAS('scripts/experiment_2019/vortex_fas')
+
+vortex_fas = ProcessorFAS('scripts/experiment_2019/vortex_fas',
+                          max_angle=0.045)
 # vortex_fs = ProcessorIFS('scripts/experiment_2019/vortex_ifs')
 
 
 
+# #
+# # experiment 2020
+# #
 #
-# experiment 2020
+# fas_high_energy = ProcessorFAS('scripts/experiment_2020/fas/high_energy',
+#                                 direction='backward',
+#                                 steps_overlap=0,
+#                                 max_angle=0.02,
+#                                 fix_plot_param=2)
 #
-
-fas_high_energy = ProcessorFAS('scripts/experiment_2020/fas/high_energy',
-                                direction='backward',
-                                steps_overlap=0,
-                                max_angle=0.02,
-                                fix_plot_param=2)
-
-fas_mid_energy = ProcessorFAS('scripts/experiment_2020/fas/mid_energy',
-                               direction='backward',
-                               steps_overlap=0,
-                               max_angle=0.02,
-                               fix_plot_param=1)
-
-fas_low_energy = ProcessorFAS('scripts/experiment_2020/fas/low_energy',
-                               direction='backward',
-                               steps_overlap=0,
-                               max_angle=0.02,
-                               fix_plot_param=1)
+# fas_mid_energy = ProcessorFAS('scripts/experiment_2020/fas/mid_energy',
+#                                direction='backward',
+#                                steps_overlap=0,
+#                                max_angle=0.02,
+#                                fix_plot_param=1)
+#
+# fas_low_energy = ProcessorFAS('scripts/experiment_2020/fas/low_energy',
+#                                direction='backward',
+#                                steps_overlap=0,
+#                                max_angle=0.02,
+#                                fix_plot_param=1)
 
 # ifs = ProcessorIFS('scripts/experiment_2020/ifs')
 
@@ -41,11 +43,11 @@ fas_low_energy = ProcessorFAS('scripts/experiment_2020/fas/low_energy',
 # ifs comparison
 #
 
-plot_ifs_comparison([fas_high_energy, fas_mid_energy, fas_low_energy],
-                    ['red', 'green', 'blue'],
-                    ['E=8 мкДж', 'E=6 мкДж', 'E=3.75 мкДж'],
-                    'scripts/experiment_2020',
-                    log_scale=False)
+# plot_ifs_comparison([fas_high_energy, fas_mid_energy, fas_low_energy],
+#                     ['red', 'green', 'blue'],
+#                     ['E=8 мкДж', 'E=6 мкДж', 'E=3.75 мкДж'],
+#                     'scripts/experiment_2020',
+#                     log_scale=False)
 
 
 

@@ -3,13 +3,29 @@ from numba import jit
 from tqdm import tqdm
 from scipy.ndimage import gaussian_filter
 import numpy as np
-from numpy import append
+from numpy import append, save
 from os.path import join as make_path
 from os import mkdir
 from numpy import array, zeros, float64, mean, where, deg2rad, log10
 from matplotlib import pyplot as plt
 
 from .base import BaseProcessor
+
+
+from matplotlib import rc, cm
+
+rc('font', **{'family': 'serif', 'serif': ['Computer Modern Roman']})
+rc('text', usetex=True)
+rc('text.latex', preamble=r'\usepackage[utf8]{inputenc}')
+rc('text.latex', preamble=r'\usepackage[russian]{babel}')
+
+
+def cm2inch(*tupl):
+    inch = 2.54
+    if isinstance(tupl[0], tuple):
+        return tuple(i / inch for i in tupl[0])
+    else:
+        return tuple(i / inch for i in tupl)
 
 
 class ProcessorFAS(BaseProcessor):
@@ -166,8 +182,8 @@ class ProcessorFAS(BaseProcessor):
         ylabel = 'lg(S/S$\mathbf{_{max}}$)' if self._log_scale else 'S/S$\mathbf{_{max}}$'
         min_val, max_val = -2, 0
         delta = 0.1 * (max_val - min_val)
-        lambdas = [e / 10 ** 3 for e in lambdas]
-        ifs = self._logarithm(ifs) if self._log_scale else self._normalize(ifs)
+        lambdas = np.array([e / 10 ** 3 for e in lambdas])
+        ifs = np.array(self._logarithm(ifs) if self._log_scale else self._normalize(ifs))
 
         fig = plt.figure(figsize=(20, 10))
         plt.plot(lambdas, ifs, color='black', linewidth=7, linestyle='solid')
@@ -185,6 +201,51 @@ class ProcessorFAS(BaseProcessor):
         bbox = fig.bbox_inches.from_bounds(0, -0.4, 19, 10)
 
         plt.savefig(make_path(self._current_res_dir, 'ifs.png'), bbox_inches=bbox)
+        plt.close()
+
+    def __plot_fas_dissertation(self, angles, lambdas, fas):
+
+        ylabel = '$\lg (S/S_{max})$' if self._log_scale else 'S/S$\mathbf{_{max}}$'
+        min_val, max_val = np.min(fas), np.max(fas)
+        delta = 0.1 * (max_val - min_val)
+
+        #
+        # fas
+        #
+
+        fig, ax = plt.subplots(figsize=cm2inch(5, 5))
+        plot = plt.contourf(fas, cmap='gray', levels=100)
+
+        x_ticks_labels = ['1.4', '1.8', '2.2']
+        dlambda = lambdas[1] - lambdas[0]
+        x_ticks = [int((float(e) * 10**3 - lambdas[0]) / dlambda) for e in x_ticks_labels]
+        plt.xticks(x_ticks, x_ticks_labels, fontsize=12)
+
+        # y_ticks_labels = ['$-$0.01', ' 0.00', '+0.01']
+        y_ticks_labels = ['$-$0.04', '$-$0.02', ' 0.00', '+0.02', '+0.04']
+        dangle = angles[1] - angles[0]
+        max_angle = angles[-1]
+        y_ticks = [int((float(e.replace('$-$', '-')) + max_angle) / dangle) + self.__fix_plot_param for e in y_ticks_labels]
+        plt.yticks(y_ticks, y_ticks_labels, fontsize=12)
+
+        plt.xlabel('$\lambda$, мкм', fontsize=14)
+        plt.ylabel('$\\theta$, рад', fontsize=14)
+
+        ax.tick_params(direction='in', colors='white', labelcolor='black', top=True, right=True)
+        for spine in ax.spines.values():
+            spine.set_edgecolor('white')
+
+        n_ticks_colorbar_levels = 4
+        dcb = (max_val - min_val) / n_ticks_colorbar_levels
+        levels_ticks_colorbar = [min_val + i * dcb for i in range(n_ticks_colorbar_levels + 1)]
+
+        # colorbar = fig.colorbar(plot, ticks=levels_ticks_colorbar, orientation='vertical', aspect=10, pad=0.05)
+        # colorbar.set_label(ylabel, labelpad=-20, y=1.2, rotation=0, fontsize=12, fontweight='bold')
+        # ticks_cbar = ['$-$%03.1f' % abs(e) if e < 0 else '0.0' for e in levels_ticks_colorbar]
+        # colorbar.ax.set_yticklabels(ticks_cbar)
+        # colorbar.ax.tick_params(labelsize=10)
+
+        plt.savefig(make_path(self._current_res_dir, 'fas'), bbox_inches='tight', dpi=500)
         plt.close()
 
     def __plot_fas(self, angles, lambdas, fas):
@@ -321,6 +382,8 @@ class ProcessorFAS(BaseProcessor):
         self._ifs_list.append(ifs)
         self.__plot_ifs(lambdas, ifs)
 
+        np.save('{}.npy'.format(make_path(self._current_res_dir, 'ifs')), ifs)
+
         # reflect
         angles, fas = self.__reflect(angles, fas)
 
@@ -328,4 +391,5 @@ class ProcessorFAS(BaseProcessor):
         fas = self._logarithm(fas) if self._log_scale else self._normalize(fas)
 
         # plot
-        self.__plot_fas(angles, lambdas, fas)
+        # self.__plot_fas(angles, lambdas, fas)
+        self.__plot_fas_dissertation(angles, lambdas, fas)

@@ -72,3 +72,6 @@ class ProcessorIFS(BaseProcessor):
 
             # plot
             self.__plot(filename, lambdas, spectrum)
+
+        np.save('{}.npy'.format(make_path(self._current_res_dir, 'ifs')), np.array(self._ifs_list[0]))
+        np.save('{}.npy'.format(make_path(self._current_res_dir, 'lambdas')), np.array(self._lambdas_list[0]))
